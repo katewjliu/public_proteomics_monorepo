@@ -1,7 +1,66 @@
 from flask import Flask, jsonify, request, g
 import sqlite3
+from prometheus_client import Histogram, make_wsgi_app, Counter
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+import time
 
 app = Flask(__name__)
+
+# Counter for total HTTP requests
+REQUEST_COUNT = Counter(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['method', 'endpoint', 'http_status']
+)
+
+# Prometheus Histogram for request latency
+REQUEST_LATENCY = Histogram(
+    'http_request_duration_seconds',
+    'Request latency in seconds',
+    ['method', 'endpoint']
+)
+
+# Counter for request errors
+REQUEST_ERRORS = Counter(
+    'http_request_errors_total',
+    'Total HTTP request errors',
+    ['method', 'endpoint', 'http_status']
+)
+
+@app.before_request
+def start_timer():
+    g.start_time = time.time()
+
+@app.after_request
+def stop_timer(response):
+    # ⏱ Record latency
+    request_latency = time.time() - g.start_time
+    REQUEST_LATENCY.labels(
+        method=request.method,
+        endpoint=request.path
+    ).observe(request_latency)
+
+    # 🔢 Count request
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.path,
+        http_status=str(response.status_code)
+    ).inc()
+    
+    # ❌ Error Count (for 4xx/5xx)
+    if response.status_code >= 400:
+        REQUEST_ERRORS.labels(
+            method=request.method,
+            endpoint=request.path,
+            http_status=str(response.status_code)
+        ).inc()
+
+    return response
+
+# Expose Prometheus metrics at /metrics
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
+    '/metrics': make_wsgi_app()
+})
 
 
 # Function to connect to the SQLite database and fetch N smallest files
