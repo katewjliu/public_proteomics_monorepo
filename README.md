@@ -60,6 +60,6 @@ This is a Python application that downloads files from GraphQL API, records down
       
 #### index.html
 This HTML displays a file download progress report in table format. 
-#### Title: File Download Progress
-#### Table headers: Unique ID, Study ID, PDC Study ID, File Name, File Size, Status, MD5 Checksum, Generated MD5
 Status column is dynamically rendered and color coded based on conditions: completed in green, in_progress in yellow, Failed in red. 
+#### Example webpage display
+![Example Display](CPTAC_file_downloader/example_display.png)
