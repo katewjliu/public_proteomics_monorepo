@@ -56,3 +56,10 @@ This is a Python application that downloads files from GraphQL API, records down
     - Logs the file as in_progress and attempts to download
     - Once successful (HTTP 200) it saves downloaded content into a file with unique identifier, and updates download record in database and verifies checksum and finally marks status as completed.
     - If download fails it updates record as failed.
+
+      
+#### index.html
+This HTML displays a file download progress report in table format. 
+#### Title: File Download Progress
+#### Table headers: Unique ID, Study ID, PDC Study ID, File Name, File Size, Status, MD5 Checksum, Generated MD5
+Status column is dynamically rendered and color coded based on conditions: completed in green, in_progress in yellow, Failed in red. 
