@@ -2,7 +2,7 @@ import requests
 import hashlib
 import os
 import sqlite3
-
+from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, render_template, redirect, url_for
 
 # PDC API endpoint
@@ -139,5 +139,50 @@ def download_and_process_file(file):
         print(f"Error downloading {file_name}: {str(e)}")
         update_download_progress(unique_id, study_id, pdc_study_id, file_id, file_name, file_size, md5sum, None, download_url, 'failed')
 
+# Flask web app to display download status
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT * FROM download_progress")
+    download_progress = c.fetchall()
+    conn.close()
+    return render_template('index.html', downloads=download_progress)
+
+@app.route('/refresh')
+def refresh():
+    # Logic to refresh download status (if needed)
+    return redirect(url_for('index'))
+
+# Function to process files in parallel
+def download_files_in_parallel(files, max_workers=4):
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(download_and_process_file, file) for file in files]
+        for future in futures:
+            future.result()
+
+if __name__ == "__main__":
+    # Initialize the database
+    init_db()
+
+    # Example flow: fetch files, sort by size, and download
+    acceptDUA = True
+    study_catalog = fetch_study_catalog(acceptDUA)
+    
+    study_id_list = [version['study_id'] for study in study_catalog for version in study['versions']]  # test 1 study
+    
+    study_id_list = study_id_list
+    all_files = [file for study_id in study_id_list for file in fetch_files_per_study(study_id)]
+    
+    files_sorted = sorted(all_files, key=lambda x: int(x['file_size']))[:500]
+    
+    # Start downloading files in parallel
+    download_files_in_parallel(files_sorted)
+
+    # Start the Flask web server, on remote server
+    if __name__ == "__main__":
+        app.run(debug=True, host='0.0.0.0')
 
 
