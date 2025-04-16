@@ -17,7 +17,7 @@
                     <th>PDC Study ID</th>
                     <th>File Name</th>
                     <th>File Size (Bytes)</th>
-                    <th>Status</th>
+                    <th>Download Status</th>
                     <th>MD5 Checksum</th>
                     <th>Generated MD5</th>
                 </tr>
@@ -48,6 +48,16 @@
         <div class="text-center">
             <a href="{{ url_for('refresh') }}" class="btn btn-primary">Refresh</a>
         </div>
-    </div>
+        <div class="pagination">
+            {% if page > 1 %}
+              <a href="{{ url_for('index', page=page-1) }}">« Previous</a>
+            {% endif %}
+            <span>Page {{ page }} of {{ total_pages }}</span>
+            {% if page < total_pages %}
+              <a href="{{ url_for('index', page=page+1) }}">Next »</a>
+            {% endif %}
+          </div>
+      
+    
 </body>
 </html>

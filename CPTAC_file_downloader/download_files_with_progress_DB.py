@@ -3,7 +3,8 @@ import hashlib
 import os
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for
+import threading
 
 # PDC API endpoint
 url = "https://pdc.cancer.gov/graphql"
@@ -66,6 +67,7 @@ def fetch_study_catalog(acceptDUA):
     }}
     """
     response = requests.get(url, params={"query": query})
+    print(response.json)
     return response.json()['data']['studyCatalog']
 
 # Fetch files per study_id
@@ -118,6 +120,7 @@ def download_and_process_file(file):
     update_download_progress(unique_id, study_id, pdc_study_id, file_id, file_name, file_size, md5sum, None, download_url, 'in_progress')
 
     try:
+        print("file downloading starting")
         # Download the file
         download_response = requests.get(download_url)
         if download_response.status_code == 200:
@@ -141,15 +144,39 @@ def download_and_process_file(file):
 
 # Flask web app to display download status
 app = Flask(__name__)
+PER_PAGE = 8
 
 @app.route('/')
 def index():
+    # 1) What page are we on?  Default to 1
+    page = request.args.get('page', 1, type=int)
+
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("SELECT * FROM download_progress")
-    download_progress = c.fetchall()
+
+    # 2) How many rows total?
+    c.execute("SELECT COUNT(*) FROM download_progress")
+    total_rows = c.fetchone()[0]
+
+    # 3) Grab only the rows for this page
+    offset = (page - 1) * PER_PAGE
+    c.execute("""
+        SELECT * FROM download_progress
+        ORDER BY file_size DESC      -- pick your sort column(s)
+        LIMIT ? OFFSET ?
+    """, (PER_PAGE, offset))
+    downloads = c.fetchall()
     conn.close()
-    return render_template('index.html', downloads=download_progress)
+
+    # 4) Compute how many pages
+    total_pages = (total_rows + PER_PAGE - 1) // PER_PAGE
+
+    return render_template(
+        'index.html',
+        downloads=downloads,
+        page=page,
+        total_pages=total_pages
+    )
 
 @app.route('/refresh')
 def refresh():
@@ -166,23 +193,29 @@ def download_files_in_parallel(files, max_workers=4):
 if __name__ == "__main__":
     # Initialize the database
     init_db()
-
+    print("database initialized")
     # Example flow: fetch files, sort by size, and download
     acceptDUA = True
-    study_catalog = fetch_study_catalog(acceptDUA)
-    
-    study_id_list = [version['study_id'] for study in study_catalog for version in study['versions']]  # test 1 study
-    
-    study_id_list = study_id_list
+    study_catalog = fetch_study_catalog(acceptDUA) 
+    study_id_list = [version['study_id'] for study in study_catalog for version in study['versions']][12:14]  # test 1 study
+    print(study_id_list)
     all_files = [file for study_id in study_id_list for file in fetch_files_per_study(study_id)]
-    
+    print("sorting files")
     files_sorted = sorted(all_files, key=lambda x: int(x['file_size']))[:500]
+    print(files_sorted)
     
     # Start downloading files in parallel
-    download_files_in_parallel(files_sorted)
+    #download_files_in_parallel(files_sorted)
+
+    # Start the file downloads in a background thread
+    download_thread = threading.Thread(target=download_files_in_parallel, args=(files_sorted,))
+    download_thread.start()
 
     # Start the Flask web server, on remote server
-    if __name__ == "__main__":
-        app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0')
+
+   
+
+    
 
 
