@@ -15,7 +15,7 @@ This Python script interacts with a GraphQL API (specifically from the PDC Cance
 3. **Fetching File Information:** for each study ID in the list, the script sends GraphQL query to retrieve file-related details such as file ID, file name, file size, MD5 checksum and a signed URL.
 4. **Sorting and Saving Data:** collected file data is sorted by file size in ascending order, and written to a CSV file (all_files_sorted.csv) for downstream use. 
 
-### create_DB_sqlite3.py
+#### create_DB_sqlite3.py
 This Python script reads file metadata stored in a CSV file and imports that data into a SQLite database.
 1. **Create SQLite Database** called file_metadata_database.db
 2. **Create a table to store CSV data:** defined SQL schema:
@@ -27,7 +27,7 @@ This Python script reads file metadata stored in a CSV file and imports that dat
 3. **Read and import CSV data:** opens all_files_sorted.csv and read row by row into SQL table (replace existing entries with new data if same primary key)
 4. **Save changes and close database connection**
 
-### API_get_files.py
+#### API_get_files.py
 This code provides a web service using Flask framework that interacts with a SQLite database and integrates Prometheus for monitoring HTTP request metrics. 
 1. **Prometheus Metrics Setup:**
    - request_count (counter)
@@ -43,3 +43,16 @@ This code provides a web service using Flask framework that interacts with a SQL
    - /smallest_files, GET method
    - /largest_files, GET method
    - /files-in-range, GET method
+
+#### download_files_with_progress_DB.py
+This is a Python application that downloads files from GraphQL API, records download progress in SQLite Database, and provides a simple web interface for monitoring that progress. 
+1. **SQLite Database Setup and Management**
+2. **API Interaction:**
+     - fetch study information
+     - fetch files for each study
+3. **File Download and Processing:**
+    - Checks the database to see if file has already been downloaded
+    - Extract download URL and call API to download
+    - Logs the file as in_progress and attempts to download
+    - Once successful (HTTP 200) it saves downloaded content into a file with unique identifier, and updates download record in database and verifies checksum and finally marks status as completed.
+    - If download fails it updates record as failed.
