@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Download Progress</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">File Download Progress</h1>
+        <table class="table table-bordered table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Unique ID</th>
+                    <th>Study ID</th>
+                    <th>PDC Study ID</th>
+                    <th>File Name</th>
+                    <th>File Size (Bytes)</th>
+                    <th>Status</th>
+                    <th>MD5 Checksum</th>
+                    <th>Generated MD5</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for download in downloads %}
+                <tr>
+                    <td>{{ download[0] }}</td>
+                    <td>{{ download[1] }}</td>
+                    <td>{{ download[2] }}</td>
+                    <td>{{ download[4] }}</td>
+                    <td>{{ download[5] }}</td>
+                    <td>
+                        {% if download[9] == 'completed' %}
+                            <span class="badge badge-success">Completed</span>
+                        {% elif download[9] == 'in_progress' %}
+                            <span class="badge badge-warning">In Progress</span>
+                        {% else %}
+                            <span class="badge badge-danger">Failed</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ download[6] }}</td>
+                    <td>{{ download[7] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="text-center">
+            <a href="{{ url_for('refresh') }}" class="btn btn-primary">Refresh</a>
+        </div>
+    </div>
+</body>
+</html>
