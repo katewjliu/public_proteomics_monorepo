@@ -63,3 +63,40 @@ This HTML displays a file download progress report in table format.
 Status column is dynamically rendered and color coded based on conditions: completed in green, in_progress in yellow, Failed in red. 
 #### Example webpage display
 ![Example Display](CPTAC_file_downloader/example_display.png)
+
+## Spectrum Viewer Project
+This application lets users choose from a list of dropdown raw files and a list of scans for each file to view spectrum for that scan in HTML webpage. The program was written in C# with REST API endpoints. It uses ThermoFisher's raw file reader library to open mass spectrometry raw data, get scan information, and display spectrum data points in a 2D plot. This allows scientist to visualize speectral data for further analysis, such as peak picking or identification of peaks. 
+
+### System Diagram
+![System Diagram](Spectrum_Viewer/spectrum_viewer_diagram.svg)
+
+### Individual Script Descriptions
+#### MyAPI.csproj
+This XML script describes .NET configuration and specifies external NuGet package dependencies. 
+
+#### Program.cs
+This C# program uses ASP.NET Core to create a simple web service that serves both static web pages and API endpoints for interacting with RAW files (commonly used in mass spectrometry data analysis).
+
+**HTTP Endpoints**
+- root endpoint
+- file servering endpoint
+- API endpoint to list RAW files
+- API endpoint for Scan Range
+- API endpoint for Scan Details
+- API endpoint for Spectrum Data
+
+#### RawFileReader.cs
+This C# code creates a library that interacts with ThermoFisher raw mass spectrometry data files. It uses Thermo Fisher's RawFileReader API to extract and process scan data from a raw file. 
+
+**Method Details**
+- OpenRawFile(rawFilePath)
+- GetScanRange(rawFilePath)
+- GetScanDetails(scan)
+- GetSpectrum(scanNumber)
+
+#### index.html
+This HTML defines a Spectrum Viewer webpage that allows users to interactively select and view mass spectrum data. 
+It contains a series of API endpoints to fetch file lists, scan ranges, spectral data, scan ddetails, and uses Chart.js to render data in an interactive, customizable chart. 
+
+#### Example Spectrum Viewer Output on HTML
+![Spectrum Viewer Example Output](Spectrum_Viewer/spectrum_viewer_output.png)
