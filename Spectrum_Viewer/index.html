@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spectrum Viewer</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Spectrum Viewer</h1>
+
+  <!-- Dropdown for selecting raw files -->
+  <label for="fileSelect">Select a raw file:</label>
+  <select id="fileSelect">
+    <option>Fetching files...</option>
+  </select>
+
+  <!-- Input for selecting scan number -->
+  <label for="scanInput">Enter Scan Number:</label>
+  <input type="number" id="scanInput" min="1" />
+  <span id="scanRange"></span>
+
+  <!-- Button to load the selected scan -->
+  <button id="loadButton">Load Spectrum</button>
+
+  <canvas id="spectrumChart" width="100" height="50"></canvas>
+
+  <script>
+    let firstScan = 1;
+    let lastScan = 100;
+    let chartInstance = null; // Store Chart.js instance
+
+    // Fetch .raw files from the API and populate the dropdown
+    async function fetchRawFiles() {
+      try {
+        const response = await fetch('/api/files');
+        const files = await response.json();
+        const dropdown = document.getElementById('fileSelect');
+        dropdown.innerHTML = ''; // Clear existing options
+
+        if (files.length === 0) {
+          const option = document.createElement('option');
+          option.textContent = "No .raw files found";
+          option.disabled = true;
+          dropdown.appendChild(option);
+        } else {
+          files.forEach(file => {
+            const option = document.createElement('option');
+            option.value = file;
+            option.textContent = file;
+            dropdown.appendChild(option);
+          });
+          // Load scan info for the first file by default
+          loadScanInfo();
+        }
+      } catch (error) {
+        console.error('Error fetching .raw files:', error);
+      }
+    }
+
+    // Load scan info using the scaninfo API endpoint
+    function loadScanInfo() {
+      const fileSelect = document.getElementById('fileSelect');
+      const selectedFile = fileSelect.value;
+      if (!selectedFile) {
+        console.error("No file selected.");
+        return;
+      }
+      
+      // Call the API endpoint with the selected file as a query parameter
+      fetch('/api/scanrange?filePath=' + encodeURIComponent(selectedFile))
+        .then(response => response.json())
+        .then(data => {
+        
+          // Expect the returned data to have properties: firstScanNumber and lastScanNumber
+          firstScan = data.firstScanNumber;
+          lastScan = data.lastScanNumber;
+           
+          // Update the scan number input field and display the valid scan range
+          const scanInputElement = document.getElementById('scanInput');
+          scanInputElement.min = firstScan;
+          scanInputElement.max = lastScan;
+          scanInputElement.value = firstScan;
+
+          document.getElementById('scanRange').textContent = `Valid Range: ${firstScan} - ${lastScan}`;
+          console.log(`Scan range loaded: FirstScan = ${firstScan}, LastScan = ${lastScan}`);
+        })
+        .catch(error => console.error('Error loading scan info:', error));
+    }
+
+    // Fetch and display spectrum data
+    async function fetchSpectrum() {
+      const selectedFile = document.getElementById('fileSelect').value;
+      const scanNumber = document.getElementById('scanInput').value;
+
+      if (!selectedFile || !scanNumber) {
+        alert("Please select a file and enter a valid scan number.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/spectrum?filePath=${encodeURIComponent(selectedFile)}&scanNumber=${scanNumber}`);
+        const data = await response.json();
+
+        if (!data || (!data.CentroidData && !data.SegmentedData)) {
+          alert("No spectrum data found for this scan.");
+          return;
+        }
+
+        let masses = [];
+        let intensities = [];
+
+        // Check if we have centroid or segmented data
+        if (data.CentroidData) {
+          masses = data.CentroidData.map(point => point.Mass);
+          intensities = data.CentroidData.map(point => point.Intensity);
+        } else if (data.SegmentedData) {
+          masses = data.SegmentedData.map(point => point.Mass);
+          intensities = data.SegmentedData.map(point => point.Intensity);
+        }
+
+        // Fetch scan details from the API
+        const detailsUrl = `/api/scandetails?filePath=${encodeURIComponent(selectedFile)}&scanNumber=${encodeURIComponent(scanNumber)}`;
+        const detailsResponse = await fetch(detailsUrl);
+        const detailsData = await detailsResponse.json(); 
+        const scanDetails = detailsData.scanDetails; // e.g., Scan number 1 @ time 15.00 - Instrument type = StandardRaw, Number of dependent scans = 0
+
+        updateChart(masses, intensities, scanNumber, scanDetails);
+      } catch (error) {
+        console.error('Error fetching spectrum:', error);
+      }
+    }
+    // fetch scan details from api
+
+    // Update the spectrum chart
+    function updateChart(masses, intensities, scanNumber, scanDetails) {
+      const ctx = document.getElementById('spectrumChart').getContext('2d');
+      //const scanNumber = document.getElementById('scanInput').value;
+
+      if (chartInstance) {
+        chartInstance.destroy(); // Destroy previous chart before creating a new one
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: masses,
+          datasets: [{
+            // add scan details here
+            label: `${scanDetails}`,
+            data: intensities,
+            borderColor: 'blue',
+            borderWidth: 1,
+            pointRadius: 0, // Hide points
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+
+          scales: {
+            x: { 
+                type: 'linear',
+                title: { display: true, text: "Mass (m/z)" } 
+            },
+            y: { 
+              title: { display: true, text: "Intensity" } 
+            }
+          }
+        }
+      });
+    }
+
+    // Add event listeners
+    document.getElementById('fileSelect').addEventListener('change', loadScanInfo);
+    document.getElementById('loadButton').addEventListener('click', fetchSpectrum);
+
+    // Fetch the RAW files as soon as the page loads
+    fetchRawFiles();
+  </script>
+</body>
+</html>
