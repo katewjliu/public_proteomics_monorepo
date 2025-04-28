@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+option csharp_namespace = "MyProject.Proto";
+
+message GeneralFileInformation {
+  string rawFileName = 1;
+  string rawFileVersion = 2;
+  string creationDate = 3;
+  string operatorName = 4;
+  int32 numberOfInstruments = 5;
+  string description = 6;
+  string instrumentModel = 7;
+  string instrumentName = 8;
+  string serialNumber = 9;
+  string softwareVersion = 10;
+  string firmwareVersion = 11;
+  string units = 12;
+  double massResolution = 13;
+  int32 numberOfScans = 14;
+  int32 firstScan = 15;
+  int32 lastScan = 16;
+  string startTime = 17;
+  string endTime = 18;
+  double lowMass = 19;
+  double highMass = 20;
+}
+
+message SampleInformationData {
+  string sampleName = 1;
+  string sampleId = 2;
+  string sampleType = 3;
+  string comment = 4;
+  string vial = 5;
+  double sampleVolume = 6;
+  double injectionVolume = 7;
+  int32 rowNumber = 8;
+  double dilutionFactor = 9;
+}
+
+message ScanFilterData {
+  string filterText = 1;
+}
+
+message ScanMetadata {
+  // Common fields
+  int32 scanNumber = 1;
+  double retentionTime = 2;
+  
+  // Oneof for type-specific metadata
+  oneof scan_specific {
+    MS1Metadata ms1 = 3;
+    MS2Metadata ms2 = 4;
+  }
+}
+
+// MS1 specific metadata
+message MS1Metadata {
+  string rawFileInstrumentType = 1;
+  int32 numDependentScans = 2;
+}
+
+// MS2 specific metadata
+message MS2Metadata {
+  int32 masterScan = 1;
+  string ionizationMode = 2;
+  string order = 3;
+  double precursorMass = 4;
+  double monoisotopicMass = 5;
+  double collisionEnergy = 6;
+  double isolationWidth = 7;
+}
+
+
+message Metadata {
+  GeneralFileInformation generalFileInformation = 1;
+  SampleInformationData sampleInformation = 2;
+  repeated string trailerExtraFields = 3;
+  int32 numberOfFilters = 4;
+  ScanFilterData firstScanFilter = 5;
+  ScanFilterData lastScanFilter = 6;
+
+  // new scan level sampleInformation
+  repeated ScanMetadata scans = 7;
+}
