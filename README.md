@@ -100,3 +100,6 @@ It contains a series of API endpoints to fetch file lists, scan ranges, spectral
 
 #### Example Spectrum Viewer Output on HTML
 ![Spectrum Viewer Example Output](Spectrum_Viewer/spectrum_viewer_output.png)
+
+## Raw Data Converter Project
+This C# program converts downloaded data to binary format for efficient storage. Specfically, it encodes file-level and scan-level metadata using Protocol Buffers v3. For peak data, each scan contains a header (scan number, data type, number of data points), followed by actual data points (mass to charge value, intensity value).
