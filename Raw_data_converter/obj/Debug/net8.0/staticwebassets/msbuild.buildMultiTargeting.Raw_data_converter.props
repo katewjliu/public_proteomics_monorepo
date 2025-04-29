@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../build/Raw_data_converter.props" />
+</Project>

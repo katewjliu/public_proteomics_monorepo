@@ -1,0 +1,87 @@
+{
+  "format": 1,
+  "restore": {
+    "/home/kateliu/public_proteomics_monorepo/Raw_data_converter/Raw_data_converter.csproj": {}
+  },
+  "projects": {
+    "/home/kateliu/public_proteomics_monorepo/Raw_data_converter/Raw_data_converter.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/kateliu/public_proteomics_monorepo/Raw_data_converter/Raw_data_converter.csproj",
+        "projectName": "Raw_data_converter",
+        "projectPath": "/home/kateliu/public_proteomics_monorepo/Raw_data_converter/Raw_data_converter.csproj",
+        "packagesPath": "/home/kateliu/.nuget/packages/",
+        "outputPath": "/home/kateliu/public_proteomics_monorepo/Raw_data_converter/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/kateliu/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "/home/kateliu/.nuget/NuGet/LocalPackages": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Google.Protobuf": {
+              "target": "Package",
+              "version": "[3.29.3, )"
+            },
+            "ThermoFisher.CommonCore.BackgroundSubtraction": {
+              "target": "Package",
+              "version": "[8.0.6, )"
+            },
+            "ThermoFisher.CommonCore.Data": {
+              "target": "Package",
+              "version": "[8.0.6, )"
+            },
+            "ThermoFisher.CommonCore.MassPrecisionEstimator": {
+              "target": "Package",
+              "version": "[8.0.6, )"
+            },
+            "ThermoFisher.CommonCore.RawFileReader": {
+              "target": "Package",
+              "version": "[8.0.6, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.115/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
