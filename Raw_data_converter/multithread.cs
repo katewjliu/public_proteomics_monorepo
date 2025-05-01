@@ -58,7 +58,7 @@ public class RawDataMultiThreadedProcessor
         Console.WriteLine("   Time range: {0:F2} - {1:F2}", startTime, endTime);
 
         // Create binary file for writing spectrum
-        string binFileName = "test_binary_profile_0430_multithreading_3.bin";
+        string binFileName = Path.ChangeExtension(args[0], "multithread.bin");
 
         // 2) Decide how many parallel accessors you want
         int threadCount = Environment.ProcessorCount;
@@ -110,7 +110,7 @@ public class RawDataMultiThreadedProcessor
                             // Lock to ensure only one thread writes to the file at a time
                             lock (writeLock)
                             {
-                                GetSpectrum(threadDataAccessor, scanNumber, writer);
+                                ReadSpectrum(threadDataAccessor, scanNumber, writer);
                             }
                         }
                     } // disposing threadDataAccessor closes that thread's handle
@@ -124,7 +124,7 @@ public class RawDataMultiThreadedProcessor
         }
     }
 
-    private static void GetSpectrum(IRawDataPlus rawFile, int scanNumber, BinaryWriter writer)
+    private static void ReadSpectrum(IRawDataPlus rawFile, int scanNumber, BinaryWriter writer)
     {
         if (rawFile == null)
         {
@@ -132,55 +132,46 @@ public class RawDataMultiThreadedProcessor
             return;
         }
 
-        Console.WriteLine($"Processing spectrum for scan number: {scanNumber}");
+        try
+        {
+            // write scan # in binary file 
+            writer.Write(scanNumber);
 
-        // Get the scan statistics from the RAW file for this scan number
-        var scanStatistics = rawFile.GetScanStatsForScanNumber(scanNumber);
+            // Get the scan filter for the spectrum
+            var scanFilter = rawFile.GetFilterForScanNumber(scanNumber);
+
+            var scan = Scan.FromFile(rawFile, scanNumber);
+            
+            // If that scan contains FTMS data then Centroid stream will be populated so check to see if it is present.
+            int labelSize = 0;
+
+            if (scan.HasCentroidStream)
+            {
+                
+                labelSize = scan.CentroidScan.Length;
+                writer.Write(labelSize);
+            }
+
+            for (int i=0; i<labelSize; i++)
+            {
+                //Console.WriteLine("Spectrum " + i + ": "+ scan.CentroidScan.Masses[i]+ ", "+ scan.CentroidScan.Intensities[i]);
+                // write to bin
+                writer.Write(scan.CentroidScan.Masses[i]);      // double
+                writer.Write(scan.CentroidScan.Intensities[i]);   // double
+                
+
+            }
+
+            // For non-FTMS data, the preferred data will be populated
+            int dataSize = scan.PreferredMasses.Length;
+            Console.WriteLine("Spectrum {0} - {1}: normal {2}, label {3} points", scanNumber, scanFilter.ToString(), dataSize, labelSize);
+            
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error reading spectrum {0} - {1}", scanNumber, ex.Message);
+        }
         
-        if (scanStatistics == null)
-        {
-            Console.Error.WriteLine($"Error: Scan statistics for scan number {scanNumber} is null.");
-            return;
-        }
-
-        // Write the scan number
-        writer.Write(scanNumber);
-
-        // Check to see if the scan has centroid data or profile data.
-        if (scanStatistics.IsCentroidScan && scanStatistics.SpectrumPacketType == SpectrumPacketType.FtCentroid)
-        {
-            writer.Write((byte)1); // Indicate centroid data
-
-            // Get the centroid (label) data from the RAW file for this scan
-            var centroidStream = rawFile.GetCentroidStream(scanNumber, false);
-            int numPoints = centroidStream.Length;
-            writer.Write(numPoints);
-            Console.WriteLine("Spectrum (centroid/label) {0} - {1} points", scanNumber, centroidStream.Length);
-
-            // Write centroid data (mass, intensity, charge values)
-            for (int i = 0; i < numPoints; i++)
-            {
-                writer.Write(centroidStream.Masses[i]);      // double
-                writer.Write(centroidStream.Intensities[i]);   // double
-                writer.Write(centroidStream.Charges[i]);       // int
-            }
-        }
-        else
-        {
-            writer.Write((byte)0); // Indicate profile data
-
-            // Get the segmented (low res and profile) scan data
-            var segmentedScan = rawFile.GetSegmentedScanFromScanNumber(scanNumber, scanStatistics);
-            int numPoints = segmentedScan.Positions.Length;
-            writer.Write(numPoints);
-            Console.WriteLine("Spectrum (profile data) {0} - {1} points", scanNumber, segmentedScan.Positions.Length);
-
-            // Write profile data (mass, intensity values)
-            for (int i = 0; i < numPoints; i++)
-            {
-                writer.Write(segmentedScan.Positions[i]);    // double
-                writer.Write(segmentedScan.Intensities[i]);    // double
-            }
-        }
+                           
     }
 }
