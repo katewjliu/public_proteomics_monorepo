@@ -81,7 +81,7 @@ namespace RawFileConverter
                 if (writeMetadata)
                 {
                     // Create a filename for the metadata binary file (e.g., with a .metadata.bin extension)
-                    string metadataFileName = Path.ChangeExtension(filename, ".metadata2.bin");
+                    string metadataFileName = Path.ChangeExtension(filename, ".metadata.bin");
                     // Call your SaveMetadata method passing the metadata file name, the rawFile, and scan numbers.
                     MetadataSerializer.SaveMetadata(metadataFileName, rawFile, firstScanNumber, lastScanNumber);
                     Console.WriteLine("Metadata binary file saved: " + metadataFileName);

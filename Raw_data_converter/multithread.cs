@@ -15,6 +15,8 @@ public class RawDataMultiThreadedProcessor
     /// </summary>
     public static void Main(string[] args)
     {
+        bool writeMetadata = false;
+        
         if (args.Length < 1)
         {
             Console.WriteLine("Usage: RawDataMultiThreadedProcessor <rawFilePath>");
@@ -57,6 +59,17 @@ public class RawDataMultiThreadedProcessor
         Console.WriteLine("   Scan range: {0} - {1}", firstScanNumber, lastScanNumber);
         Console.WriteLine("   Time range: {0:F2} - {1:F2}", startTime, endTime);
 
+        // --------- Call SaveMetadata Here ---------
+        if (writeMetadata)
+        {
+            // Create a filename for the metadata binary file (e.g., with a .metadata.bin extension)
+            string metadataFileName = Path.ChangeExtension(filename, ".metadata.bin");
+            // Call your SaveMetadata method passing the metadata file name, the rawFile, and scan numbers.
+            MetadataSerializer.SaveMetadata(metadataFileName, rawFile, firstScanNumber, lastScanNumber);
+            Console.WriteLine("Metadata binary file saved: " + metadataFileName);
+            
+        }
+        
         // 2) Decide how many parallel accessors you want
         int threadCount = Environment.ProcessorCount;
         string tmpDir = Path.GetTempPath();
