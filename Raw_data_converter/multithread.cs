@@ -57,81 +57,61 @@ public class RawDataMultiThreadedProcessor
         Console.WriteLine("   Scan range: {0} - {1}", firstScanNumber, lastScanNumber);
         Console.WriteLine("   Time range: {0:F2} - {1:F2}", startTime, endTime);
 
-        // Create binary file for writing spectrum
-        string binFileName = Path.ChangeExtension(args[0], "multithread.bin");
-
         // 2) Decide how many parallel accessors you want
         int threadCount = Environment.ProcessorCount;
+        string tmpDir = Path.GetTempPath();
+        var tempFiles = Enumerable.Range(0, threadCount)
+                          .Select(i => Path.Combine(tmpDir, $"temp_{i}.bin"))
+                          .ToArray();
 
-        // Use a lock to make sure only one thread writes to the file at a time
-        object writeLock = new object();
-
-        try
+        // 3) Parallel.For to spin up that many accessors
+        Parallel.For(0, threadCount, threadIndex =>
         {
-            // Open the BinaryWriter once outside the Parallel.For loop
-            using (BinaryWriter writer = new BinaryWriter(File.Open(binFileName, FileMode.Create)))
+            using (var writer = new BinaryWriter(File.Open(tempFiles[threadIndex], FileMode.Create, FileAccess.Write)))
+            using (IRawDataPlus accessor = threadManager.CreateThreadAccessor())
+                    
             {
-                // Write total num of scans into binary file first 
-                int numScans = lastScanNumber - firstScanNumber + 1;
-                writer.Write(numScans);
+                accessor.SelectInstrument(Device.MS, 1);
 
-                // 3) Parallel.For to spin up that many accessors
-                Parallel.For(0, threadCount, threadIndex =>
+                int scansPerThread = numScans / threadCount;
+                int remainder      = numScans % threadCount;
+                int startScan      = firstScanNumber + threadIndex * scansPerThread;
+                int endScan        = startScan + scansPerThread - 1;
+                if (threadIndex == threadCount - 1)
+                    endScan += remainder;
+
+                // **No locking here**—each thread writes to its own file
+                for (int scan = startScan; scan <= endScan; scan++)
                 {
-                    // Each thread gets its own IRawDataPlus instance
-                    using (IRawDataPlus threadDataAccessor = threadManager.CreateThreadAccessor())
-                    {   
-                        // select device for each thread
-                        threadDataAccessor.SelectInstrument(Device.MS, 1);
-                        // Check for any file-level errors
-                        if (threadDataAccessor.FileError != null && threadDataAccessor.FileError.ErrorCode != 0)
-                        {
-                            Console.Error.WriteLine(
-                                $"Thread {threadIndex}: file error {threadDataAccessor.FileError.ErrorCode} - " +
-                                threadDataAccessor.FileError.ErrorMessage);
-                            return;
-                        }
-
-                        // Distribute scans across threads
-                        int totalScans = lastScanNumber - firstScanNumber + 1;
-                        int scansPerThread = totalScans / threadCount;
-                        int remainder = totalScans % threadCount; // In case the scans aren't evenly divisible
-                        int threadStartScan = firstScanNumber + threadIndex * scansPerThread;
-                        int threadEndScan = threadStartScan + scansPerThread - 1;
-
-                        if (threadIndex == threadCount - 1) // Last thread, take any remaining scans
-                        {
-                            threadEndScan += remainder;
-                        }
-
-                        // Process each scan within the range
-                        for (int scanNumber = threadStartScan; scanNumber <= threadEndScan; scanNumber++)
-                        {
-                            // Lock to ensure only one thread writes to the file at a time
-                            lock (writeLock)
-                            {
-                                ReadSpectrum(threadDataAccessor, scanNumber, writer);
-                            }
-                        }
-                    } // disposing threadDataAccessor closes that thread's handle
-                });
-            } // BinaryWriter is disposed after the Parallel.For block
-        }
-        finally
+                    ReadSpectrum(accessor, scan, writer);
+                }
+            }
+        });
+             
+        // ### 3) Merge temp files into final output ###
+        string finalBin = Path.ChangeExtension(args[0], "multithread_splitmerge.bin");
+        using (var outFs = File.Open(finalBin, FileMode.Create, FileAccess.Write))
+        using (var outWriter = new BinaryWriter(outFs))
         {
-            // 4) Once all threads finish, dispose the manager
-            threadManager.Dispose();
-        }
-    }
+            // Write total scan count once
+            outWriter.Write(numScans);
 
+            // Append each temp file’s raw bytes
+            foreach (var part in tempFiles)
+            {
+                using (var inFs = File.OpenRead(part))
+                {
+                    inFs.CopyTo(outFs);
+                }
+                File.Delete(part);
+            }
+        }
+
+        threadManager.Dispose();
+        Console.WriteLine($"Done: wrote {numScans} scans to {finalBin}");
+    }
     private static void ReadSpectrum(IRawDataPlus rawFile, int scanNumber, BinaryWriter writer)
     {
-        if (rawFile == null)
-        {
-            Console.Error.WriteLine("Error: rawFile is null.");
-            return;
-        }
-
         try
         {
             // write scan # in binary file 
@@ -155,7 +135,6 @@ public class RawDataMultiThreadedProcessor
             for (int i=0; i<labelSize; i++)
             {
                 //Console.WriteLine("Spectrum " + i + ": "+ scan.CentroidScan.Masses[i]+ ", "+ scan.CentroidScan.Intensities[i]);
-                // write to bin
                 writer.Write(scan.CentroidScan.Masses[i]);      // double
                 writer.Write(scan.CentroidScan.Intensities[i]);   // double
                 
