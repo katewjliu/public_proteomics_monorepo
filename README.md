@@ -107,10 +107,10 @@ This C# program converts downloaded data to binary format for efficient storage.
 ### Peak File Structure
 | Field                 | Data Type | Size (bytes) | Description                                                 |
 |-----------------------|-----------|--------------|-------------------------------------------------------------|
-| Scan Header           |           |              |                                                             |
+| Scan Header                                                                                                    |
 | Scan Number           | int       | 4            | Unique scan identifier                                      |
 | Number of Data Points | int       | 4            | Count of peak data records |
-| Peak Data (per point) |           |              |                                                             |
+| Peak Data (per point)                                                                                          |
 | m/z                   | double    | 8            | Mass-to-charge ratio                                        |
 | Intensity             | double    | 8            | Signal intensity                                            |
 
