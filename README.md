@@ -104,7 +104,7 @@ It contains a series of API endpoints to fetch file lists, scan ranges, spectral
 ## Raw Data Converter Project
 This C# program converts downloaded data to binary format for efficient storage. Specfically, it encodes file-level and scan-level metadata using Protocol Buffers v3. For peak data, each scan contains a header (scan number, data type, number of data points), followed by actual data points (mass to charge value, intensity value).
 
-### Peak File Structure
+### Peak Binary File Structure
 | Field                 | Data Type | Size (bytes) | Description                                                 |
 |-----------------------|-----------|--------------|-------------------------------------------------------------|
 | Scan Header                                                                                                    |
